@@ -6,6 +6,8 @@
 */
 
 const player = "z"
+const enemy = "x"
+const attackr = "1"
 const floor1 = "q"
 const floor2 = "w"
 const floor3 = "e"
@@ -13,8 +15,20 @@ const wall1 = "a"
 const bar1 = "p"
 const bar2 = "o"
 let battle = false
-let inputEnabled = true;
+let MovementEnabled = true;
+let FightEnabled = false;
 let previouslevel
+let option = 0
+
+let playerstats = [
+  5, //health
+  1  //damage
+]; 
+
+let enemystats = [
+  5, //health
+  1  //damage
+]
 
 setLegend(
   [player, bitmap`
@@ -33,6 +47,40 @@ setLegend(
 .....0.0.0.0....
 .....0.....0....
 ....00.....00...
+................`],
+  [enemy, bitmap`
+................
+................
+................
+................
+................
+................
+.....000000.....
+....03333330....
+...0999933330...
+..099999993330..
+..099999999930..
+.09999999999330.
+.09999999999930.
+.09999999999930.
+..000000000000..
+................`],
+  [attackr, bitmap`
+................
+................
+.......33.......
+.......933......
+.........93.....
+..........3.....
+..........3.....
+..........3.....
+..........3.....
+.........93.....
+.........93.....
+.........93.....
+........933.....
+.......33.......
+.......3........
 ................`],
   [floor1, bitmap`
 4444444444444444
@@ -140,33 +188,103 @@ CCCCCCCC1CCCCCCC
 
 setSolids([player, wall1])
 
+function optionup() {
+  option -= 1
+  if (option <= 0) {
+    option = 0
+  }
+}
+
+function optiondw() {
+  option += 1
+  if (option >= 2) {
+    option = 2
+  }
+}
+
+function option1() {
+  clearText()
+  if (option == 0){
+  addText(`Move: Attack`, { x: 5, y: 5, color: color`0` });
+  } else if (option == 1) {
+  addText(`Move: Magic`, { x: 5, y: 5, color: color`0` });
+  } else if (option == 2) {
+  addText(`Move: Dodge`, { x: 5, y: 5, color: color`0` });
+  }
+}
+
+function moveAttackr() {
+  const attackrSprite = getFirst(attackr);
+   if (attackrSprite) {
+    attackrSprite.x += 1;
+    checkAttackrCollision();
+    setTimeout(moveAttackr, 350);
+  }
+}
+
+function checkAttackrCollision() {
+  const attackrSprite = getFirst(attackr);
+  const collisionSprites = getTile(attackrSprite.x, attackrSprite.y);
+
+  collisionSprites.forEach(sprite => {
+    if (sprite.type !== attackr) {
+      attackrSprite.remove();
+      getFirst(player).x -= 1;
+      FightEnabled = 1
+    }
+  });
+}
+
+
+function attack1() {
+  getFirst(player).x += 1;
+  const playerSprite = getFirst(player);
+  const newX = playerSprite.x;
+  const newY = playerSprite.y;
+
+  addSprite(newX, newY, attackr);
+ 
+  FightEnabled = false
+  moveAttackr();
+}
+
 onInput("w", () => {
-  if (inputEnabled == true) {
+  if (MovementEnabled == true) {
     getFirst(player).y -= 1;
+  } else if (FightEnabled == true) {
+    optionup()
+    option1()
   }
 })
 
 onInput("s", () => {
-  if (inputEnabled == true) {
+  if (MovementEnabled == true) {
     getFirst(player).y += 1;
+  } else if (FightEnabled == true) {
+    optiondw()
+    option1()
   }
 })
 
 onInput("a", () => {
-  if (inputEnabled == true) {
+  if (MovementEnabled == true) {
     getFirst(player).x -= 1;
   }
 })
 
 onInput("d", () => {
-  if (inputEnabled == true) {
+  if (MovementEnabled == true) {
     getFirst(player).x += 1;
   }
 })
 
 onInput("j", () => {
-
-
+  if (FightEnabled == true) {
+    if (option == 0) {
+    attack1()
+    clearText()
+    }
+  }
 })
 
 
@@ -175,11 +293,11 @@ const levels = [
   map`
 aaaaaaaaaaa
 a.........a
-ap.z.w...oa
+pp.z...x.oo
 a.........a
-ap.......oa
+pp.......oo
 a.........a
-ap.......oa
+pp.......oo
 a.........a
 aaaaaaaaaaa`,
   map`
@@ -215,19 +333,21 @@ afterInput(() => {
         previouslevel = level;
         level = 0;
         battle = true
-        inputEnabled = true;
+        MovementEnabled = false;
+        FightEnabled = true;
         setMap(levels[level]);
       } else {
-        level = previouslevel;
-        setMap(levels[level]);
+        setMap(levels[previouslevel]);
         battle = false
+        MovementEnabled = true;
+        FightEnabled = false;
       }
     }
   }
 
   if (playerTile.some(sprite => sprite.type === floor3)) {
       if (battle == false) {
-        let level = 2;
+        level = 2;
         setMap(levels[level]);
       } 
   }
